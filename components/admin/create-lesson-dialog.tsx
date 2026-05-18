@@ -150,7 +150,7 @@ export function CreateLessonDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {editingLesson ? "Редактировать урок" : "Создать новый урок"}
@@ -170,7 +170,10 @@ export function CreateLessonDialog({
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 overflow-y-auto flex-1 pr-2"
+          >
             {/* Название */}
             <FormField
               control={form.control}

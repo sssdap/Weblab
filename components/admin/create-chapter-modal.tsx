@@ -4,7 +4,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createChapter } from "@/services/chapter.service";
-import { createChapterSchema, CreateChapterFormData } from "@/lib/schemas/chapter.schema";
+import {
+  createChapterSchema,
+  CreateChapterFormData,
+} from "@/lib/schemas/chapter.schema";
 import { Chapter } from "@/lib/types/chapter.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,7 +76,10 @@ export function CreateChapterModal({
         description: data.description,
       });
 
-      console.log("[CREATE CHAPTER MODAL] Chapter created successfully:", newChapter.id);
+      console.log(
+        "[CREATE CHAPTER MODAL] Chapter created successfully:",
+        newChapter.id,
+      );
 
       // Обновляем статус публикации если нужно
       // (это можно сделать на следующем этапе)
@@ -95,7 +101,7 @@ export function CreateChapterModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Создать новую главу</DialogTitle>
           <DialogDescription>
@@ -104,7 +110,10 @@ export function CreateChapterModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 overflow-y-auto flex-1 pr-2"
+          >
             {/* Сообщение об ошибке */}
             {submitError && (
               <Alert variant="destructive">
