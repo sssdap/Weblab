@@ -1,12 +1,45 @@
-import { Users, FileText } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Users, FileText, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getStudents } from "@/services/user.service";
+import { getPendingSubmissionsCount } from "@/services/submission.service";
 
 export function AdminStatsCards() {
-  // Заменить на реальные данные из Firestore
+  const [studentsCount, setStudentsCount] = useState<number | null>(null);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      try {
+        const [students, pending] = await Promise.all([
+          getStudents(),
+          getPendingSubmissionsCount(),
+        ]);
+        if (mounted) {
+          setStudentsCount(students.length);
+          setPendingCount(pending);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const stats = [
     {
       title: "Всего учеников",
-      value: 12,
+      value: studentsCount,
       description: "Зарегистрировано",
       icon: Users,
       accentClass: "text-accent",
@@ -14,7 +47,7 @@ export function AdminStatsCards() {
     },
     {
       title: "На проверке",
-      value: 3,
+      value: pendingCount,
       description: "Проекты в очереди",
       icon: FileText,
       accentClass: "text-success",
@@ -45,7 +78,11 @@ export function AdminStatsCards() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">
-                {stat.value}
+                {loading ? (
+                  <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+                ) : (
+                  (stat.value ?? 0)
+                )}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 {stat.description}

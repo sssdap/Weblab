@@ -25,7 +25,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { title: "Главная", href: "/admin/dashboard", icon: "LayoutDashboard" },
   { title: "Курсы", href: "/admin/courses", icon: "BookOpen" },
   { title: "Ученики", href: "/admin/students", icon: "Users" },
-  { title: "Проверка", href: "/admin/reviews", icon: "ClipboardCheck" },
+  { title: "Проверка работ", href: "/admin/reviews", icon: "ClipboardCheck" },
   { title: "Настройки", href: "/admin/settings", icon: "Settings" },
 ];
 
@@ -155,7 +155,7 @@ export const FEATURES: Feature[] = [
     id: "feature-1",
     title: "Интерактивное обучение",
     description:
-      "Учитесь на практике с упражнениями по программированию и мгновенной обратной связью.",
+      "Учитесь на практике с упражнениями по программированию и детальной обратной связью.",
     icon: "Code2",
   },
   {
@@ -181,8 +181,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: "feature-5",
-    title: "Экспертная обратная связь",
-    description: "Получайте персональный код-ревью от опытных разработчиков.",
+    title: "Обратная связь от преподавателей",
+    description:
+      "Получайте подробный разбор вашего кода и рекомендации по улучшению навыков.",
     icon: "MessageSquare",
   },
   {

@@ -13,6 +13,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/firestore";
+import { waitForAuthUser } from "@/lib/firebase/wait-for-auth";
 import {
   Course,
   CreateCourseDTO,
@@ -27,10 +28,13 @@ import {
 
 const COURSES_COLLECTION = "courses";
 
-/**
- * Преобразование Firestore документа в объект Course
- * Удаляет Firebase wrapper и возвращает чистые данные
- */
+async function ensureAuthenticated() {
+  const firebaseUser = await waitForAuthUser();
+  if (!firebaseUser) {
+    throw new Error("Not authenticated. Please sign in again.");
+  }
+}
+
 function transformFirestoreCourse(data: unknown): Course {
   return data as Course;
 }
@@ -56,6 +60,7 @@ export async function createCourse(
   courseData: CreateCourseDTO,
 ): Promise<Course> {
   try {
+    await ensureAuthenticated();
     console.log("[COURSE SERVICE] Creating course:", courseData.slug);
 
     // Генерируем ID на основе slug (можно переопределить в Firestore Rules)
@@ -98,6 +103,7 @@ export async function createCourse(
  */
 export async function getCourse(courseId: string): Promise<Course | null> {
   try {
+    await ensureAuthenticated();
     console.log("[COURSE SERVICE] Fetching course:", courseId);
 
     const courseRef = doc(db, COURSES_COLLECTION, courseId);
@@ -130,6 +136,7 @@ export async function getCourse(courseId: string): Promise<Course | null> {
  */
 export async function getCourses(): Promise<Course[]> {
   try {
+    await ensureAuthenticated();
     console.log("[COURSE SERVICE] Fetching all courses");
 
     const coursesRef = collection(db, COURSES_COLLECTION);
@@ -146,9 +153,13 @@ export async function getCourses(): Promise<Course[]> {
     return courses;
   } catch (error) {
     console.error("[COURSE SERVICE] Error fetching courses:", error);
-    throw new Error(
-      `Failed to fetch courses: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+    const message = error instanceof Error ? error.message : "Unknown error";
+    if (message.includes("permission") || message.includes("Permission")) {
+      throw new Error(
+        "Нет доступа к курсам. Войдите как администратор и задеploy правила Firestore (firebase deploy --only firestore:rules).",
+      );
+    }
+    throw new Error(`Failed to fetch courses: ${message}`);
   }
 }
 

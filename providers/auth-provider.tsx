@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(authUser);
           } else {
             setUser(null);
+            void fetch("/api/auth/logout", { method: "POST" });
           }
           setError(null);
         } catch (err) {
@@ -59,8 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     try {
       setError(null);
-      await serviceSignUp(email, password, name);
-      // onAuthStateChanged автоматически обновит state
+      const authUser = await serviceSignUp(email, password, name);
+      // Явно устанавливаем пользователя, не дожидаясь onAuthStateChanged
+      setUser(authUser);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Registration failed";
@@ -79,7 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setError(null);
       const authUser = await serviceSignIn(email, password);
-      // onAuthStateChanged автоматически обновит state
+      // Явно устанавливаем пользователя, не дожидаясь onAuthStateChanged
+      setUser(authUser);
       return authUser;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed";
@@ -94,8 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignInWithGoogle = async () => {
     try {
       setError(null);
-      await serviceSignInWithGoogle();
-      // onAuthStateChanged автоматически обновит state
+      const authUser = await serviceSignInWithGoogle();
+      // Явно устанавливаем пользователя, не дожидаясь onAuthStateChanged
+      setUser(authUser);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Google sign in failed";

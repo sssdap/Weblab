@@ -40,6 +40,12 @@ function transformFirestoreLesson(data: unknown): Lesson {
   return data as Lesson;
 }
 
+function removeUndefinedFields<T extends Record<string, unknown>>(data: T): T {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined),
+  ) as T;
+}
+
 /**
  * Создание нового урока в главе
  *
@@ -96,7 +102,7 @@ export async function createLesson(
 
     // Сохраняем документ в Firestore
     const lessonRef = doc(lessonsRef, lessonId);
-    await setDoc(lessonRef, lesson);
+    await setDoc(lessonRef, removeUndefinedFields(lesson));
 
     console.log("[LESSON SERVICE] Lesson created successfully:", lessonId);
     return lesson;
@@ -219,10 +225,10 @@ export async function updateLesson(
 
     const now = Timestamp.now();
 
-    const updatePayload = {
+    const updatePayload = removeUndefinedFields({
       ...updateData,
       updatedAt: now,
-    };
+    });
 
     const lessonsRef = getLessonsCollection(courseId, chapterId);
     const lessonRef = doc(lessonsRef, lessonId);

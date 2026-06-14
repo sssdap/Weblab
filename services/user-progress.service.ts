@@ -10,6 +10,11 @@ import {
   updateDoc,
   Timestamp,
 } from "firebase/firestore";
+import {
+  getPublishedCourses,
+  getPublishedChapters,
+  getPublishedLessons,
+} from "@/services/student-course.service";
 
 /**
  * Типы статистики пользователя
@@ -49,9 +54,9 @@ export async function getUserStats(userId: string): Promise<UserStats> {
   try {
     const db = getFirestore();
 
-    // 1. Получаем все курсы
-    const coursesSnap = await getDocs(collection(db, "courses"));
-    const courses = coursesSnap.docs.map((doc) => doc.id);
+    // 1. Только опубликованные курсы (требование Firestore rules)
+    const publishedCourses = await getPublishedCourses();
+    const courses = publishedCourses.map((course) => course.id);
 
     if (courses.length === 0) {
       return {
@@ -62,7 +67,7 @@ export async function getUserStats(userId: string): Promise<UserStats> {
       };
     }
 
-    // 2. Получаем все опубликованные уроки по всем курсам и ватчим их количество
+    // 2. Считаем опубликованные уроки по всем курсам
     const courseStatsMap = new Map<string, CourseStats>();
     let totalLessonsAcrossAllCourses = 0;
 
@@ -73,26 +78,12 @@ export async function getUserStats(userId: string): Promise<UserStats> {
         completedLessons: 0,
       };
 
-      // Получаем все главы курса
-      const chaptersSnap = await getDocs(
-        collection(db, `courses/${courseId}/chapters`)
-      );
+      const chapters = await getPublishedChapters(courseId);
 
-      for (const chapterDoc of chaptersSnap.docs) {
-        const chapterId = chapterDoc.id;
-
-        // Получаем все опубликованные уроки в главе
-        const lessonsSnap = await getDocs(
-          collection(db, `courses/${courseId}/chapters/${chapterId}/lessons`)
-        );
-
-        for (const lessonDoc of lessonsSnap.docs) {
-          const lesson = lessonDoc.data();
-          if (lesson.published) {
-            courseStats.totalLessons++;
-            totalLessonsAcrossAllCourses++;
-          }
-        }
+      for (const chapter of chapters) {
+        const lessons = await getPublishedLessons(courseId, chapter.id);
+        courseStats.totalLessons += lessons.length;
+        totalLessonsAcrossAllCourses += lessons.length;
       }
 
       courseStatsMap.set(courseId, courseStats);
@@ -190,24 +181,12 @@ export async function getCourseStatus(
   try {
     const db = getFirestore();
 
-    // Получаем все опубликованные уроки в курсе
     let totalLessons = 0;
-    const chaptersSnap = await getDocs(
-      collection(db, `courses/${courseId}/chapters`)
-    );
+    const chapters = await getPublishedChapters(courseId);
 
-    for (const chapterDoc of chaptersSnap.docs) {
-      const chapterId = chapterDoc.id;
-      const lessonsSnap = await getDocs(
-        collection(db, `courses/${courseId}/chapters/${chapterId}/lessons`)
-      );
-
-      lessonsSnap.forEach((lessonDoc) => {
-        const lesson = lessonDoc.data();
-        if (lesson.published) {
-          totalLessons++;
-        }
-      });
+    for (const chapter of chapters) {
+      const lessons = await getPublishedLessons(courseId, chapter.id);
+      totalLessons += lessons.length;
     }
 
     if (totalLessons === 0) {

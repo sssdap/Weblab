@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-} from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/firestore";
 import { Course } from "@/lib/types/course.types";
 import { Chapter } from "@/lib/types/chapter.types";
@@ -16,8 +8,9 @@ import { Lesson } from "@/lib/types/lesson.types";
 
 /**
  * Сервис для работы со студентическим представлением курсов
- * Получает только опубликованные (published === true) контент
- * Используется для отображения курсов, глав и уроков студентам
+ * Курсы фильтруются по published === true (показываются только опубликованные),
+ * главы и уроки возвращаются все (фильтр published применяется на уровне правил Firestore).
+ * Используется для отображения курсов, глав и уроков студентам.
  */
 
 const COURSES_COLLECTION = "courses";
@@ -57,8 +50,9 @@ export async function getPublishedCourses(): Promise<Course[]> {
     const querySnapshot = await getDocs(q);
     const courses: Course[] = [];
 
-    querySnapshot.forEach((doc) => {
-      const course = transformFirestoreCourse(doc.data());
+    querySnapshot.forEach((docSnap) => {
+      const course = transformFirestoreCourse(docSnap.data());
+      course.id = docSnap.id;
       courses.push(course);
     });
 
@@ -89,19 +83,14 @@ export async function getPublishedCourse(
       courseId,
     );
 
-    const courseRef = doc(db, COURSES_COLLECTION, courseId);
-    const courseSnap = await getDoc(courseRef);
+    const courses = await getPublishedCourses();
+    const course = courses.find((item) => item.id === courseId) ?? null;
 
-    if (!courseSnap.exists()) {
-      console.warn("[STUDENT COURSE SERVICE] Course not found:", courseId);
-      return null;
-    }
-
-    const course = transformFirestoreCourse(courseSnap.data());
-
-    // Проверяем что курс опубликован
-    if (!course.published) {
-      console.warn("[STUDENT COURSE SERVICE] Course not published:", courseId);
+    if (!course) {
+      console.warn(
+        "[STUDENT COURSE SERVICE] Course not found or not published:",
+        courseId,
+      );
       return null;
     }
 
@@ -138,11 +127,7 @@ export async function getPublishedChapters(
       courseId,
       "chapters",
     );
-    const q = query(
-      chaptersRef,
-      where("published", "==", true),
-      orderBy("order", "asc"),
-    );
+    const q = query(chaptersRef, orderBy("order", "asc"));
 
     const querySnapshot = await getDocs(q);
     const chapters: Chapter[] = [];
@@ -182,26 +167,12 @@ export async function getPublishedChapter(
       chapterId,
     );
 
-    const chaptersRef = collection(
-      db,
-      COURSES_COLLECTION,
-      courseId,
-      "chapters",
-    );
-    const chapterRef = doc(chaptersRef, chapterId);
-    const chapterSnap = await getDoc(chapterRef);
+    const chapters = await getPublishedChapters(courseId);
+    const chapter = chapters.find((item) => item.id === chapterId) ?? null;
 
-    if (!chapterSnap.exists()) {
-      console.warn("[STUDENT COURSE SERVICE] Chapter not found:", chapterId);
-      return null;
-    }
-
-    const chapter = transformFirestoreChapter(chapterSnap.data());
-
-    // Проверяем что глава опубликована
-    if (!chapter.published) {
+    if (!chapter) {
       console.warn(
-        "[STUDENT COURSE SERVICE] Chapter not published:",
+        "[STUDENT COURSE SERVICE] Chapter not found or not published:",
         chapterId,
       );
       return null;
@@ -250,11 +221,7 @@ export async function getPublishedLessons(
       `${COURSES_COLLECTION}/${courseId}/chapters/${chapterId}/lessons`,
     );
 
-    const q = query(
-      lessonsRef,
-      where("published", "==", true),
-      orderBy("order", "asc"),
-    );
+    const q = query(lessonsRef, orderBy("order", "asc"));
 
     const querySnapshot = await getDocs(q);
     const lessons: Lesson[] = [];
@@ -295,28 +262,14 @@ export async function getPublishedLesson(
       lessonId,
     );
 
-    const lessonsRef = collection(
-      db,
-      COURSES_COLLECTION,
-      courseId,
-      "chapters",
-      chapterId,
-      "lessons",
-    );
-    const lessonRef = doc(lessonsRef, lessonId);
-    const lessonSnap = await getDoc(lessonRef);
+    const lessons = await getPublishedLessons(courseId, chapterId);
+    const lesson = lessons.find((item) => item.id === lessonId) ?? null;
 
-    if (!lessonSnap.exists()) {
-      console.warn("[STUDENT COURSE SERVICE] Lesson not found:", lessonId);
-      return null;
-    }
-
-    const lesson = transformFirestoreLesson(lessonSnap.data()) as Lesson;
-    lesson.id = lessonSnap.id;
-
-    // Проверяем что урок опубликован
-    if (!lesson.published) {
-      console.warn("[STUDENT COURSE SERVICE] Lesson not published:", lessonId);
+    if (!lesson) {
+      console.warn(
+        "[STUDENT COURSE SERVICE] Lesson not found or not published:",
+        lessonId,
+      );
       return null;
     }
 

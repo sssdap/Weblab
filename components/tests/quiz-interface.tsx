@@ -16,22 +16,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { sampleQuiz } from "@/lib/mock-data";
+import { QuizContent } from "@/lib/types/quiz.types";
 
-// Mock тест - заменить на реальные данные из Firestore
-const defaultQuiz = sampleQuiz;
+interface QuizInterfaceProps {
+  title: string;
+  quiz: QuizContent;
+  onPassed?: () => void;
+}
 
-export function QuizInterface() {
+export function QuizInterface({ title, quiz, onPassed }: QuizInterfaceProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
   >({});
   const [showResult, setShowResult] = useState(false);
 
-  const quiz = defaultQuiz;
   const question = quiz.questions[currentQuestion];
   const totalQuestions = quiz.questions.length;
   const progress = ((currentQuestion + 1) / totalQuestions) * 100;
+
+  if (!question) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          В этом тесте пока нет вопросов
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSelectAnswer = (optionId: string) => {
     setSelectedAnswers((prev) => ({
@@ -77,12 +89,19 @@ export function QuizInterface() {
   const score = calculateScore();
   const passed = score.percentage >= quiz.passingScore;
 
+  const handleCloseResult = () => {
+    setShowResult(false);
+    if (passed) {
+      onPassed?.();
+    }
+  };
+
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          {quiz.title}
-        </h1>
+        <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+          {title}
+        </h2>
         <p className="mt-2 text-muted-foreground">
           Ответь на все вопросы, чтобы завершить тест
         </p>
@@ -178,18 +197,18 @@ export function QuizInterface() {
               {passed ? (
                 <>
                   <CheckCircle className="h-5 w-5 text-accent" />
-                  Красава!
+                  Тест сдан!
                 </>
               ) : (
                 <>
                   <XCircle className="h-5 w-5 text-destructive" />
-                  Ещё чуть-чуть
+                  Попробуй ещё раз
                 </>
               )}
             </DialogTitle>
             <DialogDescription>
               {passed
-                ? "Тест сдан — можно двигаться дальше по курсу."
+                ? "Отличный результат — можно двигаться дальше по курсу."
                 : `Нужно набрать минимум ${quiz.passingScore}%. Попробуй ещё раз!`}
             </DialogDescription>
           </DialogHeader>
@@ -231,7 +250,7 @@ export function QuizInterface() {
             <Button variant="outline" onClick={handleRetry}>
               Заново
             </Button>
-            <Button onClick={() => setShowResult(false)}>Закрыть</Button>
+            <Button onClick={handleCloseResult}>Закрыть</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

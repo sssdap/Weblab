@@ -68,7 +68,7 @@ export default function AdminLayout({
   return (
     <SidebarProvider>
       <AppSidebar isAdmin />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset className="min-w-0 overflow-x-hidden">{children}</SidebarInset>
     </SidebarProvider>
   );
 }

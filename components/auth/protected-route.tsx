@@ -51,7 +51,16 @@ export function ProtectedRoute({
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="mb-4 inline-flex animate-spin">
+            <div className="h-8 w-8 rounded-full border-4 border-primary/20 border-t-primary" />
+          </div>
+          <p className="text-muted-foreground">Перенаправление...</p>
+        </div>
+      </div>
+    );
   }
 
   if (requiredRole && user.role !== requiredRole) {

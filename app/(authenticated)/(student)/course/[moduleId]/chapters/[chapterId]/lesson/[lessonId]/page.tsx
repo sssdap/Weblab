@@ -33,6 +33,10 @@ import {
   EmptyContent,
 } from "@/components/ui/empty";
 import { CompleteLessonButton } from "@/components/lesson/complete-lesson-button";
+import { PracticeSubmissionSection } from "@/components/lesson/practice-submission-section";
+import { VideoPlayer } from "@/components/lesson/video-player";
+import { QuizInterface } from "@/components/tests/quiz-interface";
+import { parseQuizContent } from "@/lib/types/quiz.types";
 
 interface LessonPageParams {
   moduleId: string;
@@ -97,43 +101,6 @@ function LessonTypeIndicator({ type }: { type: Lesson["type"] }) {
       {cfg.icon} {cfg.label}
     </div>
   );
-}
-
-function getVideoEmbed(url: string): string | null {
-  try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, "");
-
-    // YouTube full URL
-    if (host.includes("youtube.com")) {
-      const v = u.searchParams.get("v");
-      if (v) return `https://www.youtube.com/embed/${v}`;
-      // handle /embed/VIDEO
-      const embedMatch = u.pathname.match(/\/embed\/([\w-]+)/);
-      if (embedMatch && embedMatch[1])
-        return `https://www.youtube.com/embed/${embedMatch[1]}`;
-    }
-
-    // youtu.be short link
-    if (host === "youtu.be") {
-      const id = u.pathname.slice(1);
-      if (id) return `https://www.youtube.com/embed/${id}`;
-    }
-
-    // Vimeo
-    if (host.includes("vimeo.com")) {
-      const parts = u.pathname.split("/").filter(Boolean);
-      const id = parts[parts.length - 1];
-      if (id) return `https://player.vimeo.com/video/${id}`;
-    }
-  } catch (e) {
-    return null;
-  }
-  return null;
-}
-
-function isVideoFile(url: string): boolean {
-  return /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
 }
 
 export default function LessonViewPage() {
@@ -364,55 +331,45 @@ export default function LessonViewPage() {
                 </div>
               </header>
 
-              {/* Video (optional) */}
-              {lesson.videoUrl ? (
-                <section>
-                  {isVideoFile(lesson.videoUrl) ? (
-                    <video controls className="w-full rounded-md">
-                      <source src={lesson.videoUrl} />
-                      Ваш браузер не поддерживает воспроизведение видео.
-                    </video>
-                  ) : (
-                    (() => {
-                      const embed = getVideoEmbed(lesson.videoUrl!);
-                      if (embed) {
-                        return (
-                          <div className="aspect-video w-full rounded-md overflow-hidden">
-                            <iframe
-                              src={embed}
-                              title="Видео урок"
-                              frameBorder={0}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              className="w-full h-full"
-                            />
-                          </div>
-                        );
-                      }
+              {lesson.type === "quiz" ? (
+                (() => {
+                  const quiz = parseQuizContent(lesson.content);
+                  if (!quiz) {
+                    return (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          Тест не настроен. Обратитесь к преподавателю.
+                        </AlertDescription>
+                      </Alert>
+                    );
+                  }
 
-                      return (
-                        <Card>
-                          <CardContent>
-                            <a
-                              href={lesson.videoUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary underline"
-                            >
-                              Открыть видео
-                            </a>
-                          </CardContent>
-                        </Card>
-                      );
-                    })()
+                  return <QuizInterface title={lesson.title} quiz={quiz} />;
+                })()
+              ) : (
+                <>
+                  {(lesson.type === "video" || lesson.videoUrl) &&
+                    lesson.videoUrl && (
+                      <VideoPlayer url={lesson.videoUrl} title={lesson.title} />
+                    )}
+
+                  {lesson.content.trim() && (
+                    <section className="prose prose-sm dark:prose-invert max-w-none">
+                      <MarkdownPreview content={lesson.content} />
+                    </section>
                   )}
-                </section>
-              ) : null}
+                </>
+              )}
 
-              {/* Content */}
-              <section className="prose prose-sm dark:prose-invert max-w-none">
-                <MarkdownPreview content={lesson.content} />
-              </section>
+              {lesson.type === "practice" && (
+                <PracticeSubmissionSection
+                  courseId={courseId}
+                  chapterId={chapterId}
+                  lessonId={lessonId}
+                  lessonTitle={lesson.title}
+                />
+              )}
 
               {/* Attachments */}
               {lesson.attachments && lesson.attachments.length > 0 && (

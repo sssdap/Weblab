@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ExternalLink,
   Loader2,
@@ -22,134 +22,201 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import type { ProjectSubmission } from "@/lib/types";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { GRADE_SCALE } from "@/lib/constants";
+import type { Submission } from "@/lib/types/submission.types";
+import type { AuthUser } from "@/lib/types/auth.types";
+import {
+  getPendingSubmissions,
+  reviewSubmission,
+} from "@/services/submission.service";
+import { getStudents } from "@/services/user.service";
+import {
+  formatSubmissionDate,
+  getSubmissionLessonLabel,
+} from "@/lib/submission-utils";
 
-// Mock данные - заменить на реальные из Firestore
-const pendingSubmissions: ProjectSubmission[] = [
-  {
-    id: "1",
-    userId: "student1",
-    moduleId: "m1",
-    githubUrl: "https://github.com/student1/project1",
-    description: "Первый проект - реализовал все требования",
-    status: "pending",
-    grade: undefined,
-    feedback: undefined,
-    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    reviewedAt: undefined,
-    reviewedBy: undefined,
-  },
-  {
-    id: "2",
-    userId: "student2",
-    moduleId: "m2",
-    githubUrl: "https://github.com/student2/project2",
-    description: "Второй проект с дополнительными функциями",
-    status: "pending",
-    grade: undefined,
-    feedback: undefined,
-    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    reviewedAt: undefined,
-    reviewedBy: undefined,
-  },
-];
+function parseGithubRepo(url: string): { owner: string; repo: string } | null {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return null;
 
-const students = [
-  {
-    id: "student1",
-    name: "Иван Петров",
-    email: "ivan@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ivan",
-  },
-  {
-    id: "student2",
-    name: "Мария Сидорова",
-    email: "maria@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
-  },
-];
-
-const modules = [
-  { id: "m1", number: 1, title: "Введение в HTML" },
-  { id: "m2", number: 2, title: "CSS и стили" },
-];
+    return {
+      owner: parts[0],
+      repo: parts[1].replace(/\.git$/, ""),
+    };
+  } catch {
+    return null;
+  }
+}
 
 export function ReviewPanel() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [pendingSubmissions, setPendingSubmissions] = useState<Submission[]>([]);
+  const [students, setStudents] = useState<AuthUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] =
-    useState<ProjectSubmission | null>(pendingSubmissions[0] || null);
+    useState<Submission | null>(null);
   const [grade, setGrade] = useState([7]);
   const [feedback, setFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [repositoryStatus, setRepositoryStatus] = useState<{
     checking: boolean;
     available: boolean | null;
+    message?: string;
   }>({ checking: false, available: null });
 
-  const getStudent = (userId: string) => {
-    return students.find((s) => s.id === userId);
-  };
+  const studentsById = useMemo(
+    () => new Map(students.map((student) => [student.id, student])),
+    [students],
+  );
 
-  const getModuleTitle = (moduleId: string) => {
-    const module = modules.find((m) => m.id === moduleId);
-    return module
-      ? `Модуль ${module.number}: ${module.title}`
-      : "Неизвестный модуль";
-  };
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [submissions, studentList] = await Promise.all([
+        getPendingSubmissions(),
+        getStudents(),
+      ]);
+      setPendingSubmissions(submissions);
+      setStudents(studentList);
+      setSelectedSubmission((current) => {
+        if (current && submissions.some((item) => item.id === current.id)) {
+          return current;
+        }
+        return submissions[0] ?? null;
+      });
+    } catch (err) {
+      toast({
+        title: "Не удалось загрузить очередь",
+        description: err instanceof Error ? err.message : "Неизвестная ошибка",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("ru-RU", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const getStudent = (userId: string) => studentsById.get(userId);
 
   const checkRepositoryAccess = async (url: string) => {
     setRepositoryStatus({ checking: true, available: null });
 
-    try {
-      // Проверка доступности GitHub ссылки
-      const response = await fetch(url, { method: "HEAD", mode: "no-cors" });
+    const repo = parseGithubRepo(url);
+    if (!repo) {
       setRepositoryStatus({
         checking: false,
-        available: response.status !== 404,
+        available: false,
+        message: "Некорректная ссылка на GitHub",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${repo.owner}/${repo.repo}`,
+      );
+
+      if (response.ok) {
+        setRepositoryStatus({
+          checking: false,
+          available: true,
+          message: "Репозиторий найден и доступен",
+        });
+        return;
+      }
+
+      if (response.status === 404) {
+        setRepositoryStatus({
+          checking: false,
+          available: false,
+          message: "Репозиторий не найден или приватный",
+        });
+        return;
+      }
+
+      setRepositoryStatus({
+        checking: false,
+        available: null,
+        message: "Не удалось проверить — открой ссылку вручную",
       });
     } catch {
-      // Если ошибка, предполагаем что ссылка валидна (GitHub может блокировать CORS)
-      setRepositoryStatus({ checking: false, available: true });
+      setRepositoryStatus({
+        checking: false,
+        available: null,
+        message: "Не удалось проверить — открой ссылку вручную",
+      });
     }
   };
 
-  const handleSubmitReview = async (status: "approved" | "rejected") => {
-    if (!selectedSubmission) return;
+  const handleSubmitReview = async (
+    status: "approved" | "needs_revision" | "rejected",
+  ) => {
+    if (!selectedSubmission || !user) return;
+
+    if (status !== "approved" && feedback.trim().length < 5) {
+      toast({
+        title: "Добавь комментарий",
+        description: "Для доработки или отклонения нужен отзыв (мин. 5 символов)",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
-    // TODO: Отправить отзыв на сервер
-    // const reviewData = {
-    //   submissionId: selectedSubmission.id,
-    //   grade: grade[0],
-    //   feedback,
-    //   status,
-    //   reviewedAt: new Date(),
-    // };
-    // await submitReview(reviewData);
+    try {
+      await reviewSubmission(selectedSubmission.id, {
+        status,
+        grade: grade[0],
+        feedback: feedback.trim(),
+        reviewedBy: user.id,
+      });
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+      toast({
+        title:
+          status === "approved"
+            ? "Работа принята"
+            : status === "needs_revision"
+              ? "Отправлено на доработку"
+              : "Работа отклонена",
+      });
 
-    setIsSubmitting(false);
-    setFeedback("");
-    setGrade([7]);
-
-    const currentIndex = pendingSubmissions.findIndex(
-      (s) => s.id === selectedSubmission.id,
-    );
-    const nextSubmission = pendingSubmissions[currentIndex + 1] || null;
-    setSelectedSubmission(nextSubmission);
+      const remaining = pendingSubmissions.filter(
+        (item) => item.id !== selectedSubmission.id,
+      );
+      setPendingSubmissions(remaining);
+      setSelectedSubmission(remaining[0] ?? null);
+      setFeedback("");
+      setGrade([7]);
+      setRepositoryStatus({ checking: false, available: null });
+    } catch (err) {
+      toast({
+        title: "Не удалось сохранить проверку",
+        description: err instanceof Error ? err.message : "Неизвестная ошибка",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (pendingSubmissions.length === 0) {
     return (
@@ -166,7 +233,7 @@ export function ReviewPanel() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-3 lg:gap-6">
       <div className="lg:col-span-1">
         <Card className="border-primary/10">
           <CardHeader>
@@ -187,6 +254,8 @@ export function ReviewPanel() {
                     onClick={() => {
                       setSelectedSubmission(submission);
                       setRepositoryStatus({ checking: false, available: null });
+                      setFeedback("");
+                      setGrade([7]);
                     }}
                     className={`w-full p-4 text-left transition-colors hover:bg-secondary/50 ${
                       isSelected ? "bg-secondary" : ""
@@ -200,17 +269,17 @@ export function ReviewPanel() {
                         />
                         <AvatarFallback>
                           {student?.name
-                            .split(" ")
+                            ?.split(" ")
                             .map((n) => n[0])
-                            .join("")}
+                            .join("") ?? "?"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
-                          {student?.name}
+                          {student?.name ?? "Ученик"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {getModuleTitle(submission.moduleId).split(":")[0]}
+                        <p className="truncate text-xs text-muted-foreground">
+                          {submission.lessonTitle}
                         </p>
                       </div>
                     </div>
@@ -229,10 +298,14 @@ export function ReviewPanel() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <CardTitle className="leading-snug">
-                    {getModuleTitle(selectedSubmission.moduleId)}
+                    {getSubmissionLessonLabel(selectedSubmission)}
                   </CardTitle>
                   <CardDescription>
-                    Отправлено {formatDate(selectedSubmission.submittedAt)}
+                    Отправлено{" "}
+                    {formatSubmissionDate(
+                      selectedSubmission.submittedAt,
+                      true,
+                    )}
                   </CardDescription>
                 </div>
                 <Badge variant="secondary">На проверке</Badge>
@@ -251,15 +324,17 @@ export function ReviewPanel() {
                         />
                         <AvatarFallback>
                           {student?.name
-                            .split(" ")
+                            ?.split(" ")
                             .map((n) => n[0])
-                            .join("")}
+                            .join("") ?? "?"}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{student?.name}</p>
+                        <p className="font-medium">
+                          {student?.name ?? "Ученик"}
+                        </p>
                         <p className="text-sm text-muted-foreground">
-                          {student?.email}
+                          {student?.email ?? "—"}
                         </p>
                       </div>
                     </>
@@ -297,33 +372,30 @@ export function ReviewPanel() {
                     ) : (
                       <>
                         <AlertCircle className="mr-2 h-4 w-4" />
-                        Проверить доступность
+                        Проверить репозиторий
                       </>
                     )}
                   </Button>
-                  {repositoryStatus.available !== null && (
+                  {repositoryStatus.message && (
                     <Alert
                       className={
-                        repositoryStatus.available
+                        repositoryStatus.available === true
                           ? "border-accent/50 bg-accent/10"
-                          : "border-destructive/50 bg-destructive/10"
+                          : repositoryStatus.available === false
+                            ? "border-destructive/50 bg-destructive/10"
+                            : "border-border"
                       }
                     >
-                      {repositoryStatus.available ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 text-accent" />
-                          <AlertDescription>
-                            Репозиторий доступен
-                          </AlertDescription>
-                        </>
+                      {repositoryStatus.available === true ? (
+                        <CheckCircle className="h-4 w-4 text-accent" />
+                      ) : repositoryStatus.available === false ? (
+                        <XCircle className="h-4 w-4 text-destructive" />
                       ) : (
-                        <>
-                          <XCircle className="h-4 w-4 text-destructive" />
-                          <AlertDescription>
-                            Репозиторий недоступен
-                          </AlertDescription>
-                        </>
+                        <AlertCircle className="h-4 w-4" />
                       )}
+                      <AlertDescription>
+                        {repositoryStatus.message}
+                      </AlertDescription>
                     </Alert>
                   )}
                 </div>
@@ -344,8 +416,8 @@ export function ReviewPanel() {
                 <Slider
                   value={grade}
                   onValueChange={setGrade}
-                  min={1}
-                  max={10}
+                  min={GRADE_SCALE.min}
+                  max={GRADE_SCALE.max}
                   step={1}
                   className="w-full"
                 />
@@ -366,24 +438,37 @@ export function ReviewPanel() {
                 />
               </div>
 
-              <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row">
+              <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap">
                 <Button
                   variant="destructive"
                   onClick={() => handleSubmitReview("rejected")}
                   disabled={isSubmitting}
-                  className="flex-1"
+                  className="w-full flex-1 text-sm sm:w-auto"
                 >
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <XCircle className="mr-2 h-4 w-4" />
                   )}
+                  Отклонить
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleSubmitReview("needs_revision")}
+                  disabled={isSubmitting}
+                  className="w-full flex-1 text-sm sm:w-auto"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <AlertCircle className="mr-2 h-4 w-4" />
+                  )}
                   На доработку
                 </Button>
                 <Button
                   onClick={() => handleSubmitReview("approved")}
                   disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-primary to-accent text-primary-foreground"
+                  className="w-full flex-1 bg-gradient-to-r from-primary to-accent text-sm text-primary-foreground sm:w-auto"
                 >
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

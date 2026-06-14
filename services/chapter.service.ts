@@ -154,8 +154,9 @@ export async function getChapters(courseId: string): Promise<Chapter[]> {
     const querySnapshot = await getDocs(q);
 
     const chapters: Chapter[] = [];
-    querySnapshot.forEach((doc) => {
-      const chapter = transformFirestoreChapter(doc.data());
+    querySnapshot.forEach((docSnap) => {
+      const chapter = transformFirestoreChapter(docSnap.data());
+      chapter.id = docSnap.id;
       chapters.push(chapter);
     });
 

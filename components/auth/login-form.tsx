@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, Sparkles, Chrome } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -20,13 +19,18 @@ import { useAuth } from "@/hooks/use-auth";
 
 export function LoginForm() {
   const router = useRouter();
-  const { signIn, signInWithGoogle, error: authError } = useAuth();
+  const { signIn, signInWithGoogle, error: authError, user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {},
   );
   const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    router.replace(user.role === "admin" ? "/admin/dashboard" : "/dashboard");
+  }, [user, authLoading, router]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -81,6 +85,14 @@ export function LoginForm() {
   }
 
   const displayError = localError || authError;
+
+  if (authLoading || user) {
+    return (
+      <div className="flex w-full max-w-md items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md border-2 border-accent/25 bg-card/90 shadow-xl shadow-accent/10 backdrop-blur-sm">
@@ -165,13 +177,6 @@ export function LoginForm() {
                 {errors.password}
               </p>
             )}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox id="remember" name="remember" />
-            <Label htmlFor="remember" className="text-sm font-normal">
-              Запомнить на этом устройстве
-            </Label>
           </div>
 
           <Button

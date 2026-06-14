@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/footer";
 import { HeroSection } from "@/components/landing/hero-section";
 import { FeaturesSection } from "@/components/landing/features-section";
 import { CoursePreviewSection } from "@/components/landing/course-preview-section";
+import { StatsSection } from "@/components/landing/stats-section";
 import { FAQSection } from "@/components/landing/faq-section";
 import { CTASection } from "@/components/landing/cta-section";
 
@@ -14,6 +15,7 @@ export default function LandingPage() {
         <HeroSection />
         <FeaturesSection />
         <CoursePreviewSection />
+        <StatsSection />
         <FAQSection />
         <CTASection />
       </main>

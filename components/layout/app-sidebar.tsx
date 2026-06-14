@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
@@ -22,6 +23,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -36,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SITE_NAME, STUDENT_NAV_ITEMS, ADMIN_NAV_ITEMS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
+import { getPendingSubmissionsCount } from "@/services/submission.service";
 
 const iconMap = {
   LayoutDashboard,
@@ -56,6 +59,25 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const router = useRouter();
   const navItems = isAdmin ? ADMIN_NAV_ITEMS : STUDENT_NAV_ITEMS;
   const { signOut, user } = useAuth();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    let mounted = true;
+
+    getPendingSubmissionsCount()
+      .then((count) => {
+        if (mounted) setPendingCount(count);
+      })
+      .catch(() => {
+        if (mounted) setPendingCount(0);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAdmin, pathname]);
 
   const handleLogout = async () => {
     try {
@@ -108,6 +130,11 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
+                    {isAdmin &&
+                      item.href === "/admin/reviews" &&
+                      pendingCount > 0 && (
+                        <SidebarMenuBadge>{pendingCount}</SidebarMenuBadge>
+                      )}
                   </SidebarMenuItem>
                 );
               })}

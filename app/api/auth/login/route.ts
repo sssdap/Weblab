@@ -32,17 +32,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Проверка и создание session cookie
-    const expiresIn = 1000 * 60 * 60 * 24 * 5; // 5 дней
+    const expiresIn = 1000 * 60 * 60 * 24; // 24 часа
 
     const sessionCookie = await auth.createSessionCookie(idToken, {
       expiresIn,
     });
     console.log("[LOGIN API] Session cookie created");
 
-    // Установка cookie
     const cookieStore = await cookies();
     cookieStore.set("__session", sessionCookie, {
-      maxAge: expiresIn / 1000, // в секундах
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

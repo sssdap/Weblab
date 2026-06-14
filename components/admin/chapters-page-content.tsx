@@ -240,32 +240,32 @@ export function ChaptersPageContent() {
     <>
       <AppHeader
         breadcrumbs={[
-          { label: "Преподаватель" },
+          { label: "Преподаватель", href: "/admin/dashboard" },
           { label: "Курсы", href: "/admin/courses" },
           {
-            label: courseId.substring(0, 8),
+            label: course?.title || "Курс",
             href: `/admin/courses/${courseId}`,
           },
           { label: "Главы" },
         ]}
       />
-      <main className="flex-1 overflow-auto">
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="container max-w-4xl px-4 py-6 md:px-6 lg:px-8">
           {/* HEADER */}
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">
                 {isLoadingCourse
                   ? "Загрузка..."
                   : `Главы курса: ${course?.title || ""}`}
               </h1>
-              <p className="mt-2 text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
                 Управляйте главами и их содержимым
               </p>
             </div>
             <Button
-              className="gap-2"
-              size="lg"
+              className="w-full shrink-0 gap-2 sm:w-auto"
+              size="default"
               disabled={isLoadingCourse || isLoadingChapters}
               onClick={() => setIsCreateDialogOpen(true)}
             >
@@ -328,36 +328,35 @@ export function ChaptersPageContent() {
               {chapters.map((chapter) => (
                 <Card
                   key={chapter.id}
-                  className="flex flex-col gap-4 transition-colors hover:border-primary/50 md:flex-row md:items-center md:justify-between md:gap-6"
+                  className="min-w-0 overflow-hidden transition-colors hover:border-primary/50"
                 >
-                  <CardHeader className="flex-1">
+                  <CardHeader className="pb-3">
                     <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <CardTitle className="text-lg">
+                      <div className="flex flex-wrap items-start gap-2">
+                        <CardTitle className="min-w-0 flex-1 text-base leading-snug">
                           {chapter.title}
                         </CardTitle>
                         <Badge
                           variant={chapter.published ? "default" : "secondary"}
-                          className="shrink-0"
+                          className="shrink-0 text-xs"
                         >
                           {chapter.published ? "Опубликована" : "Черновик"}
                         </Badge>
                       </div>
-                      <CardDescription className="line-clamp-2">
+                      <CardDescription className="line-clamp-2 text-xs sm:text-sm">
                         {chapter.description}
                       </CardDescription>
-                      <div className="flex gap-4 text-xs text-muted-foreground">
-                        <span>Порядок: {chapter.order}</span>
+                      <div className="text-xs text-muted-foreground">
+                        Порядок: {chapter.order}
                       </div>
                     </div>
                   </CardHeader>
 
-                  {/* ACTION BUTTONS */}
-                  <div className="flex gap-2 px-6 pb-4 md:pb-0 md:pr-6 md:pl-0">
+                  <div className="flex flex-wrap gap-2 border-t px-4 py-3 sm:px-6">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="gap-2"
+                      className="min-w-0 flex-1 gap-1.5 text-xs sm:flex-none sm:text-sm"
                       disabled={
                         isDeleting === chapter.id || isPublishing === chapter.id
                       }
@@ -373,7 +372,7 @@ export function ChaptersPageContent() {
                     <Button
                       variant={chapter.published ? "destructive" : "default"}
                       size="sm"
-                      className="gap-2"
+                      className="min-w-0 flex-1 gap-1.5 text-xs sm:flex-none sm:text-sm"
                       disabled={
                         isPublishing === chapter.id || isDeleting === chapter.id
                       }
@@ -386,12 +385,12 @@ export function ChaptersPageContent() {
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
-                      {chapter.published ? "Скрыть" : "Опубликовать"}
+                      {chapter.published ? "Скрыть" : "Опубл."}
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="gap-2"
+                      className="shrink-0 gap-1.5 px-2.5 sm:px-3"
                       disabled={
                         isDeleting === chapter.id || isPublishing === chapter.id
                       }

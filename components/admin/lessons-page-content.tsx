@@ -289,10 +289,10 @@ export function LessonsPageContent() {
     <>
       <AppHeader
         breadcrumbs={[
-          { label: "Преподаватель" },
+          { label: "Преподаватель", href: "/admin/dashboard" },
           { label: "Курсы", href: "/admin/courses" },
           {
-            label: courseId.substring(0, 8),
+            label: course?.title || "Курс",
             href: `/admin/courses/${courseId}`,
           },
           {
@@ -302,23 +302,23 @@ export function LessonsPageContent() {
           { label: chapter?.title || "Глава" },
         ]}
       />
-      <main className="flex-1 overflow-auto">
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="container max-w-4xl px-4 py-6 md:px-6 lg:px-8">
           {/* HEADER */}
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">
                 {isLoadingCourse
                   ? "Загрузка..."
                   : `Уроки: ${chapter?.title || ""}`}
               </h1>
-              <p className="mt-2 text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
                 Управляйте уроками этой главы
               </p>
             </div>
             <Button
-              className="gap-2"
-              size="lg"
+              className="w-full shrink-0 gap-2 sm:w-auto"
+              size="default"
               disabled={isLoadingCourse || isLoadingLessons}
               onClick={() => {
                 setEditingLesson(null);
@@ -384,53 +384,56 @@ export function LessonsPageContent() {
               {lessons.map((lesson) => (
                 <Card
                   key={lesson.id}
-                  className="flex flex-col gap-4 transition-colors hover:border-primary/50 md:flex-row md:items-center md:justify-between md:gap-6"
+                  className="min-w-0 overflow-hidden transition-colors hover:border-primary/50"
                 >
-                  <CardHeader className="flex-1">
+                  <CardHeader className="pb-3">
                     <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <CardTitle className="text-lg">
+                      <div className="flex flex-wrap items-start gap-2">
+                        <CardTitle className="min-w-0 flex-1 text-base leading-snug">
                           {getTypeIcon(lesson.type)} {lesson.title}
                         </CardTitle>
-                        <Badge
-                          variant={lesson.published ? "default" : "secondary"}
-                        >
-                          {lesson.published ? "Опубликован" : "Черновик"}
-                        </Badge>
-                        <Badge variant="outline">
-                          {getTypeLabel(lesson.type)}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Badge
+                            variant={lesson.published ? "default" : "secondary"}
+                            className="text-xs"
+                          >
+                            {lesson.published ? "Опубликован" : "Черновик"}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {getTypeLabel(lesson.type)}
+                          </Badge>
+                        </div>
                       </div>
                       {lesson.description && (
-                        <CardDescription className="line-clamp-2">
+                        <CardDescription className="line-clamp-2 text-xs sm:text-sm">
                           {lesson.description}
                         </CardDescription>
                       )}
-                      <div className="flex gap-4 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span>Порядок: {lesson.order}</span>
-                        <span>⏱️ {lesson.estimatedMinutes} мин</span>
+                        <span>{lesson.estimatedMinutes} мин</span>
                       </div>
                     </div>
                   </CardHeader>
 
-                  {/* ACTION BUTTONS */}
-                  <div className="flex gap-2 px-6 pb-4 md:pb-0 md:pr-6 md:pl-0">
+                  <div className="flex flex-wrap gap-2 border-t px-4 py-3 sm:px-6">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="gap-2"
+                      className="min-w-0 flex-1 gap-1.5 text-xs sm:flex-none sm:text-sm"
                       disabled={
                         isDeleting === lesson.id || isPublishing === lesson.id
                       }
                       onClick={() => handleEditClick(lesson)}
                     >
                       <Edit className="h-4 w-4" />
-                      Редактировать
+                      <span className="sm:hidden">Изменить</span>
+                      <span className="hidden sm:inline">Редактировать</span>
                     </Button>
                     <Button
                       variant={lesson.published ? "destructive" : "default"}
                       size="sm"
-                      className="gap-2"
+                      className="min-w-0 flex-1 gap-1.5 text-xs sm:flex-none sm:text-sm"
                       disabled={
                         isPublishing === lesson.id || isDeleting === lesson.id
                       }
@@ -443,12 +446,12 @@ export function LessonsPageContent() {
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
-                      {lesson.published ? "Скрыть" : "Опубликовать"}
+                      {lesson.published ? "Скрыть" : "Опубл."}
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="gap-2"
+                      className="shrink-0 gap-1.5 px-2.5 sm:px-3"
                       disabled={
                         isDeleting === lesson.id || isPublishing === lesson.id
                       }

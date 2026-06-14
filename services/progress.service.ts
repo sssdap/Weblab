@@ -4,8 +4,11 @@ import {
   getDocs,
   query,
   where,
-  doc,
 } from "firebase/firestore";
+import {
+  getPublishedChapters,
+  getPublishedLessons,
+} from "@/services/student-course.service";
 
 /**
  * Получает процент завершения курса для пользователя
@@ -20,25 +23,16 @@ export async function getCourseProgress(
   try {
     const db = getFirestore();
 
-    // Получаем все опубликованные уроки курса
-    const lessonsQuery = query(collection(db, `courses/${courseId}/chapters`));
-    const chaptersSnap = await getDocs(lessonsQuery);
+    const chapters = await getPublishedChapters(courseId);
     let totalLessons = 0;
     const lessonRefs: { chapterId: string; lessonId: string }[] = [];
-    for (const chapterDoc of chaptersSnap.docs) {
-      const chapterId = chapterDoc.id;
-      const lessonsCol = collection(
-        db,
-        `courses/${courseId}/chapters/${chapterId}/lessons`,
-      );
-      const lessonsSnap = await getDocs(lessonsCol);
-      lessonsSnap.forEach((lessonDoc) => {
-        const lesson = lessonDoc.data();
-        if (lesson.published) {
-          totalLessons++;
-          lessonRefs.push({ chapterId, lessonId: lessonDoc.id });
-        }
-      });
+
+    for (const chapter of chapters) {
+      const lessons = await getPublishedLessons(courseId, chapter.id);
+      totalLessons += lessons.length;
+      for (const lesson of lessons) {
+        lessonRefs.push({ chapterId: chapter.id, lessonId: lesson.id });
+      }
     }
     if (totalLessons === 0) return 0;
 

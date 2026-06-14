@@ -65,7 +65,7 @@ export interface Lesson {
    * URL встроенного видео (опционально)
    * Например: YouTube/Vimeo или ссылка на mp4
    */
-  videoUrl?: string;
+  videoUrl?: string | null;
 
   /**
    * Вложенные файлы / материалы урока
@@ -100,7 +100,7 @@ export interface CreateLessonDTO {
   content: string;
   order: number;
   estimatedMinutes: number;
-  videoUrl?: string;
+  videoUrl?: string | null;
   attachments?: Array<{ name: string; url: string }>;
 }
 

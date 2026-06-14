@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,38 +20,94 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import {
+  createSubmission,
+  getPracticeLessonOptions,
+} from "@/services/submission.service";
+import type { PracticeLessonOption } from "@/lib/types/submission.types";
+import {
+  isValidGithubUrl,
+  normalizeGithubUrl,
+  parsePracticeLessonId,
+} from "@/lib/submission-utils";
 
-// Mock модули - заменить на реальные из Firestore
-const modules = [
-  { id: "m1", number: 1, title: "Введение в HTML" },
-  { id: "m2", number: 2, title: "CSS и стили" },
-  { id: "m3", number: 3, title: "JavaScript основы" },
-];
+interface ProjectSubmitFormProps {
+  preselectedLesson?: PracticeLessonOption;
+  onSuccess?: () => void;
+  compact?: boolean;
+}
 
-export function ProjectSubmitForm() {
+export function ProjectSubmitForm({
+  preselectedLesson,
+  onSuccess,
+  compact = false,
+}: ProjectSubmitFormProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingLessons, setIsLoadingLessons] = useState(!preselectedLesson);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [moduleId, setModuleId] = useState("");
+  const [lessonId, setLessonId] = useState(preselectedLesson?.id ?? "");
+  const [practiceLessons, setPracticeLessons] = useState<PracticeLessonOption[]>(
+    preselectedLesson ? [preselectedLesson] : [],
+  );
 
-  const availableModules = modules;
+  useEffect(() => {
+    if (preselectedLesson) return;
+
+    let mounted = true;
+
+    const loadLessons = async () => {
+      setIsLoadingLessons(true);
+      try {
+        const options = await getPracticeLessonOptions();
+        if (mounted) setPracticeLessons(options);
+      } catch {
+        if (mounted) {
+          toast({
+            title: "Не удалось загрузить практические задания",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (mounted) setIsLoadingLessons(false);
+      }
+    };
+
+    loadLessons();
+
+    return () => {
+      mounted = false;
+    };
+  }, [preselectedLesson, toast]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErrors({});
 
+    if (!user) {
+      toast({
+        title: "Нужно войти в аккаунт",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
-    const selectedModuleId = moduleId || (formData.get("moduleId") as string);
-    const githubUrl = formData.get("githubUrl") as string;
-    const description = formData.get("description") as string;
+    const selectedLessonId = lessonId || (formData.get("lessonId") as string);
+    const githubUrl = normalizeGithubUrl(formData.get("githubUrl") as string);
+    const description = (formData.get("description") as string).trim();
 
     const newErrors: Record<string, string> = {};
-    if (!selectedModuleId) {
-      newErrors.moduleId = "Выбери модуль";
+    if (!selectedLessonId) {
+      newErrors.lessonId = "Выбери практическое задание";
     }
-    if (!githubUrl || !githubUrl.includes("github.com")) {
-      newErrors.githubUrl = "Нужна ссылка на GitHub";
+    if (!isValidGithubUrl(githubUrl)) {
+      newErrors.githubUrl = "Нужна ссылка на GitHub (github.com/...)";
     }
-    if (!description || description.length < 10) {
+    if (description.length < 10) {
       newErrors.description = "Описание — минимум 10 символов";
     }
 
@@ -60,49 +116,105 @@ export function ProjectSubmitForm() {
       return;
     }
 
+    const lesson =
+      practiceLessons.find((item) => item.id === selectedLessonId) ??
+      preselectedLesson;
+
+    if (!lesson) {
+      setErrors({ lessonId: "Задание не найдено" });
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // TODO: Отправить проект на сервер
-    // const projectData = {
-    //   moduleId: selectedModuleId,
-    //   githubUrl,
-    //   description,
-    // };
-    // await submitProject(projectData);
+    try {
+      await createSubmission({
+        userId: user.id,
+        courseId: lesson.courseId,
+        courseTitle: lesson.courseTitle,
+        chapterId: lesson.chapterId,
+        chapterTitle: lesson.chapterTitle,
+        lessonId: lesson.lessonId,
+        lessonTitle: lesson.lessonTitle,
+        githubUrl,
+        description,
+      });
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+      toast({
+        title: "Работа отправлена",
+        description: "Преподаватель проверит её в ближайшее время",
+      });
 
-    setIsSubmitting(false);
-    e.currentTarget.reset();
-    setModuleId("");
+      e.currentTarget.reset();
+      if (!preselectedLesson) setLessonId("");
+      onSuccess?.();
+    } catch (err) {
+      toast({
+        title: "Не удалось отправить работу",
+        description: err instanceof Error ? err.message : "Неизвестная ошибка",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
+
+  const selectedParsed = lessonId ? parsePracticeLessonId(lessonId) : null;
 
   return (
     <Card className="border-accent/20 shadow-md shadow-accent/5">
       <CardHeader>
-        <CardTitle>Отправить проект</CardTitle>
-        <CardDescription>Ссылка на репозиторий для проверки</CardDescription>
+        <CardTitle>{compact ? "Сдать работу" : "Отправить проект"}</CardTitle>
+        <CardDescription>
+          {compact
+            ? "Ссылка на GitHub-репозиторий с решением"
+            : "Ссылка на репозиторий для проверки"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="moduleId">Модуль</Label>
-            <Select value={moduleId} onValueChange={setModuleId}>
-              <SelectTrigger id="moduleId">
-                <SelectValue placeholder="Выбери модуль" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableModules.map((module) => (
-                  <SelectItem key={module.id} value={module.id}>
-                    Модуль {module.number}: {module.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.moduleId && (
-              <p className="text-sm text-destructive">{errors.moduleId}</p>
-            )}
-          </div>
+          {!compact && (
+            <div className="space-y-2">
+              <Label htmlFor="lessonId">Практическое задание</Label>
+              <Select
+                value={lessonId}
+                onValueChange={setLessonId}
+                disabled={isLoadingLessons || isSubmitting}
+              >
+                <SelectTrigger id="lessonId">
+                  <SelectValue
+                    placeholder={
+                      isLoadingLessons
+                        ? "Загрузка заданий..."
+                        : "Выбери задание"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {practiceLessons.length === 0 ? (
+                    <SelectItem value="__empty" disabled>
+                      Нет доступных практических заданий
+                    </SelectItem>
+                  ) : (
+                    practiceLessons.map((lesson) => (
+                      <SelectItem key={lesson.id} value={lesson.id}>
+                        {lesson.label}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.lessonId && (
+                <p className="text-sm text-destructive">{errors.lessonId}</p>
+              )}
+            </div>
+          )}
+
+          {compact && preselectedLesson && (
+            <p className="rounded-lg bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
+              {preselectedLesson.label}
+            </p>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="githubUrl">Ссылка на репозиторий GitHub</Label>
@@ -128,7 +240,7 @@ export function ProjectSubmitForm() {
               id="description"
               name="description"
               placeholder="Что сделал, что было сложным, что хочешь улучшить..."
-              rows={4}
+              rows={compact ? 3 : 4}
               disabled={isSubmitting}
             />
             {errors.description && (
@@ -139,11 +251,21 @@ export function ProjectSubmitForm() {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground"
-            disabled={isSubmitting}
+            disabled={
+              isSubmitting ||
+              isLoadingLessons ||
+              (!compact && practiceLessons.length === 0)
+            }
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Отправить на проверку
           </Button>
+
+          {selectedParsed && !compact && (
+            <p className="text-xs text-muted-foreground">
+              Работа будет привязана к выбранному практическому уроку
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

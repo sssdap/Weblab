@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ExternalLink,
   Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,52 +19,78 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { projectSubmissions, courseModules } from "@/lib/mock-data";
 import { PROJECT_STATUS_LABELS } from "@/lib/constants";
-import type { ProjectSubmission } from "@/lib/types";
+import type { Submission, SubmissionStatus } from "@/lib/types/submission.types";
+import { useAuth } from "@/hooks/use-auth";
+import { getSubmissionsByUser } from "@/services/submission.service";
+import {
+  formatSubmissionDate,
+  getSubmissionLessonLabel,
+} from "@/lib/submission-utils";
 
-// Mock данные - заменить на реальные из Firestore
-const submissions = projectSubmissions;
-
-const statusConfig = {
+const statusConfig: Record<
+  SubmissionStatus,
+  {
+    icon: typeof Clock;
+    variant: "secondary" | "default" | "destructive" | "outline";
+    color: string;
+  }
+> = {
   pending: {
     icon: Clock,
-    variant: "secondary" as const,
+    variant: "secondary",
     color: "text-muted-foreground",
   },
   approved: {
     icon: CheckCircle,
-    variant: "default" as const,
+    variant: "default",
     color: "text-accent",
   },
   rejected: {
     icon: XCircle,
-    variant: "destructive" as const,
+    variant: "destructive",
     color: "text-destructive",
   },
   needs_revision: {
     icon: AlertCircle,
-    variant: "outline" as const,
+    variant: "outline",
     color: "text-warning",
   },
 };
 
-export function SubmissionsList() {
+interface SubmissionsListProps {
+  refreshKey?: number;
+}
+
+export function SubmissionsList({ refreshKey = 0 }: SubmissionsListProps) {
+  const { user } = useAuth();
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] =
-    useState<ProjectSubmission | null>(null);
+    useState<Submission | null>(null);
 
-  const getModuleTitle = (moduleId: string) => {
-    const module = courseModules.find((m) => m.id === moduleId);
-    return module ? `Модуль ${module.number}` : "Неизвестный модуль";
-  };
+  const loadSubmissions = useCallback(async () => {
+    if (!user) return;
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("ru-RU", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date);
-  };
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getSubmissionsByUser(user.id);
+      setSubmissions(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Не удалось загрузить работы",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadSubmissions();
+  }, [loadSubmissions, refreshKey]);
 
   return (
     <>
@@ -72,7 +99,13 @@ export function SubmissionsList() {
           <CardTitle>Мои работы</CardTitle>
         </CardHeader>
         <CardContent>
-          {submissions.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : error ? (
+            <p className="py-8 text-center text-destructive">{error}</p>
+          ) : submissions.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
               Пока ничего не отправлял. Скорее первая работа!
             </p>
@@ -95,20 +128,21 @@ export function SubmissionsList() {
                           />
                           {PROJECT_STATUS_LABELS[submission.status]}
                         </Badge>
-                        {submission.grade && (
+                        {submission.grade != null && (
                           <Badge variant="outline">
                             Оценка: {submission.grade}/10
                           </Badge>
                         )}
                       </div>
                       <h4 className="font-medium">
-                        {getModuleTitle(submission.moduleId)}
+                        {getSubmissionLessonLabel(submission)}
                       </h4>
                       <p className="truncate text-sm text-muted-foreground">
                         {submission.githubUrl}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Отправлено {formatDate(submission.submittedAt)}
+                        Отправлено{" "}
+                        {formatSubmissionDate(submission.submittedAt)}
                       </p>
                     </div>
 
@@ -150,17 +184,19 @@ export function SubmissionsList() {
             <DialogTitle>Комментарий преподавателя</DialogTitle>
             <DialogDescription>
               {selectedSubmission &&
-                getModuleTitle(selectedSubmission.moduleId)}
+                getSubmissionLessonLabel(selectedSubmission)}
             </DialogDescription>
           </DialogHeader>
           {selectedSubmission && (
             <div className="space-y-4">
-              <div>
-                <h4 className="mb-1 text-sm font-medium">Оценка</h4>
-                <p className="text-2xl font-bold">
-                  {selectedSubmission.grade}/10
-                </p>
-              </div>
+              {selectedSubmission.grade != null && (
+                <div>
+                  <h4 className="mb-1 text-sm font-medium">Оценка</h4>
+                  <p className="text-2xl font-bold">
+                    {selectedSubmission.grade}/10
+                  </p>
+                </div>
+              )}
               <div>
                 <h4 className="mb-1 text-sm font-medium">Текст</h4>
                 <p className="text-muted-foreground">
@@ -169,7 +205,8 @@ export function SubmissionsList() {
               </div>
               {selectedSubmission.reviewedAt && (
                 <p className="text-xs text-muted-foreground">
-                  Проверено {formatDate(selectedSubmission.reviewedAt)}
+                  Проверено{" "}
+                  {formatSubmissionDate(selectedSubmission.reviewedAt)}
                 </p>
               )}
             </div>

@@ -105,111 +105,113 @@ export function CreateChapterDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 overflow-y-auto flex-1 pr-2"
-          >
-            {/* ОШИБКА */}
-            {submitError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{submitError}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* НАЗВАНИЕ */}
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Название главы</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Например: Введение в JavaScript"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Главное название раздела курса
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
+        <div className="overflow-y-auto flex-1 pr-2">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* ОШИБКА */}
+              {submitError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{submitError}</AlertDescription>
+                </Alert>
               )}
-            />
 
-            {/* ОПИСАНИЕ */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Описание</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Что будет в этой главе..."
-                      disabled={isSubmitting}
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Краткое описание содержимого главы
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* ОПУБЛИКОВАТЬ */}
-            <FormField
-              control={form.control}
-              name="published"
-              render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0 rounded-lg border p-3">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <div className="flex-1 space-y-1 leading-none">
-                    <FormLabel className="cursor-pointer text-sm font-medium">
-                      Опубликовать главу
-                    </FormLabel>
-                    <FormDescription className="text-xs">
-                      Будет видна студентам сразу после создания
+              {/* НАЗВАНИЕ */}
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Название главы</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Например: Введение в JavaScript"
+                        disabled={isSubmitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Главное название раздела курса
                     </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* КНОПКИ */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="gap-2 flex-1"
-              >
-                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Создание..." : "Создать главу"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={() => onOpenChange(false)}
-                className="flex-1"
-              >
-                Отмена
-              </Button>
-            </div>
-          </form>
-        </Form>
+              {/* ОПИСАНИЕ */}
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Описание</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Что будет в этой главе..."
+                        disabled={isSubmitting}
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Краткое описание содержимого главы
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* ОПУБЛИКОВАТЬ */}
+              <FormField
+                control={form.control}
+                name="published"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 space-y-0 rounded-lg border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <div className="flex-1 space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer text-sm font-medium">
+                        Опубликовать главу
+                      </FormLabel>
+                      <FormDescription className="text-xs">
+                        Будет видна студентам сразу после создания
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </div>
+
+        {/* КНОПКИ */}
+        <div className="flex gap-3 pt-4 border-t">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="gap-2 flex-1"
+            onClick={() => {
+              form.handleSubmit(onSubmit)();
+            }}
+          >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Создание..." : "Создать главу"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={() => onOpenChange(false)}
+            className="flex-1"
+          >
+            Отмена
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

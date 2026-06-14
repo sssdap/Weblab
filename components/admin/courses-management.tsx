@@ -32,7 +32,7 @@ import { Loader2, Plus, Edit, Trash2 } from "lucide-react";
  */
 export function CoursesManagement() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,8 +44,13 @@ export function CoursesManagement() {
    * Загрузка списка курсов при монтировании компонента
    */
   useEffect(() => {
+    if (authLoading) return;
+    if (!user || user.role !== "admin") {
+      setLoading(false);
+      return;
+    }
     loadCourses();
-  }, []);
+  }, [user, authLoading]);
 
   /**
    * Получение списка курсов из Firestore
@@ -151,8 +156,8 @@ export function CoursesManagement() {
       {/* Кнопка создания нового курса */}
       <div className="flex justify-end">
         <Button
-          className="gap-2"
-          size="lg"
+          className="w-full gap-2 sm:w-auto"
+          size="default"
           disabled={loading}
           onClick={() => router.push("/admin/courses/new")}
         >
@@ -209,18 +214,16 @@ export function CoursesManagement() {
           {courses.map((course) => (
             <Card
               key={course.id}
-              className="flex flex-col transition-colors hover:border-primary/50"
+              className="flex min-w-0 flex-col overflow-hidden transition-colors hover:border-primary/50"
             >
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 space-y-2">
-                    <CardTitle className="line-clamp-2 text-base">
-                      {course.title}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2 text-xs">
-                      {course.slug}
-                    </CardDescription>
-                  </div>
+              <CardHeader className="pb-3">
+                <div className="space-y-2">
+                  <CardTitle className="line-clamp-2 text-base leading-snug">
+                    {course.title}
+                  </CardTitle>
+                  <CardDescription className="line-clamp-1 text-xs">
+                    {course.slug}
+                  </CardDescription>
                 </div>
               </CardHeader>
 
@@ -275,12 +278,12 @@ export function CoursesManagement() {
               </CardContent>
 
               {/* Кнопки действий */}
-              <div className="border-t px-6 py-4">
-                <div className="flex gap-2">
+              <div className="border-t px-4 py-3 sm:px-6">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 gap-2"
+                    className="min-w-0 flex-1 gap-1.5 text-xs sm:flex-none sm:text-sm"
                     disabled={loading || deleting === course.id}
                     onClick={() => router.push(`/admin/courses/${course.id}`)}
                   >
@@ -290,7 +293,7 @@ export function CoursesManagement() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    className="gap-2"
+                    className="shrink-0 px-2.5 sm:px-3"
                     onClick={() => handleDeleteClick(course)}
                     disabled={loading || deleting === course.id}
                   >

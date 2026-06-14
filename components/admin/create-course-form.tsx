@@ -6,7 +6,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCourse } from "@/services/course.service";
-import { createCourseSchema, CreateCourseFormData } from "@/lib/schemas/course.schema";
+import {
+  createCourseSchema,
+  CreateCourseFormData,
+} from "@/lib/schemas/course.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,12 +73,16 @@ export function CreateCourseForm() {
       // Создание курса через сервис
       const newCourse = await createCourse(user.id, data);
 
-      console.log("[CREATE COURSE FORM] Course created successfully:", newCourse.id);
+      console.log(
+        "[CREATE COURSE FORM] Course created successfully:",
+        newCourse.id,
+      );
 
       // Редирект на страницу курсов
       router.push("/admin/courses");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Ошибка при создании курса";
+      const message =
+        err instanceof Error ? err.message : "Ошибка при создании курса";
       console.error("[CREATE COURSE FORM] Error creating course:", err);
       setSubmitError(message);
     } finally {
@@ -237,7 +244,9 @@ export function CreateCourseForm() {
                 />
               </FormControl>
               <div className="flex-1 space-y-1 leading-none">
-                <FormLabel className="cursor-pointer">Опубликовать сразу</FormLabel>
+                <FormLabel className="cursor-pointer">
+                  Опубликовать сразу
+                </FormLabel>
                 <FormDescription>
                   Если отключено, курс будет в режиме черновика
                 </FormDescription>

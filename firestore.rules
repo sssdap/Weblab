@@ -1,0 +1,97 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // ============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============================================================
+    // ПОЛЬЗОВАТЕЛИ
+    // Коллекция: /users/{userId}
+    // ============================================================
+    match /users/{userId} {
+      // Создание документа при регистрации — только сам пользователь
+      allow create: if isOwner(userId);
+      // Чтение своего профиля — пользователь, всех — админ
+      allow read: if isOwner(userId) || isAdmin();
+      // Обновление своих данных или админом
+      allow update: if isOwner(userId) || isAdmin();
+      // Удаление — только админ
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================
+    // КУРСЫ
+    // Коллекция: /courses/{courseId}
+    // ============================================================
+    match /courses/{courseId} {
+      // Опубликованные курсы может читать кто угодно (даже без входа)
+      // Неопубликованные — только админы
+      allow read: if resource.data.published == true || isAdmin();
+      // Создание, обновление, удаление — только админ
+      allow create, update, delete: if isAdmin();
+
+      // ============================================================
+      // ГЛАВЫ (подколлекция курса)
+      // /courses/{courseId}/chapters/{chapterId}
+      // Аутентифицированные студенты могут читать любые главы,
+      // неаутентифицированные — только опубликованные.
+      // ============================================================
+      match /chapters/{chapterId} {
+        allow read: if resource.data.published == true || isAuthenticated();
+        allow create, update, delete: if isAdmin();
+
+        // ============================================================
+        // УРОКИ (подколлекция главы)
+        // /courses/{courseId}/chapters/{chapterId}/lessons/{lessonId}
+        // Аутентифицированные студенты могут читать любые уроки,
+        // неаутентифицированные — только опубликованные.
+        // ============================================================
+        match /lessons/{lessonId} {
+          allow read: if resource.data.published == true || isAuthenticated();
+          allow create, update, delete: if isAdmin();
+        }
+      }
+    }
+
+    // ============================================================
+    // ПРОГРЕСС ПОЛЬЗОВАТЕЛЕЙ
+    // Коллекция: /progress/{progressId}
+    // ============================================================
+    match /progress/{progressId} {
+      // Чтение своего прогресса или админом
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      // Запись своего прогресса (userId в данных должен совпадать с текущим пользователем)
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================
+    // ОТПРАВКИ РАБОТ
+    // Коллекция: /submissions/{submissionId}
+    // ============================================================
+    match /submissions/{submissionId} {
+      // Чтение своих отправок или админом
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      // Создание своей отправки
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Проверка/редактирование админом
+      allow update, delete: if isAdmin();
+    }
+  }
+}
