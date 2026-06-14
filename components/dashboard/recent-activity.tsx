@@ -1,29 +1,20 @@
-import {
-  CheckCircle2,
-  FileCheck,
-  FolderGit2,
-  XCircle,
-  Trophy,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { activities } from "@/lib/mock-data";
+"use client";
 
-const iconMap = {
+import { useEffect, useState } from "react";
+import { CheckCircle2, BookOpen } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  getLastActivity,
+  type ActivityItem,
+} from "@/services/user-progress.service";
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   lesson_completed: CheckCircle2,
-  test_passed: Trophy,
-  test_failed: XCircle,
-  project_submitted: FolderGit2,
-  project_approved: FileCheck,
-  project_rejected: XCircle,
 };
 
-const colorMap = {
+const colorMap: Record<string, string> = {
   lesson_completed: "bg-success/10 text-success",
-  test_passed: "bg-success/10 text-success",
-  test_failed: "bg-destructive/10 text-destructive",
-  project_submitted: "bg-muted text-muted-foreground",
-  project_approved: "bg-success/10 text-success",
-  project_rejected: "bg-destructive/10 text-destructive",
 };
 
 function formatTimeAgo(date: Date): string {
@@ -41,6 +32,26 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function RecentActivity() {
+  const { user } = useAuth();
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActivity = async () => {
+      if (!user?.id) return;
+      try {
+        setLoading(true);
+        const items = await getLastActivity(user.id, 10);
+        setActivities(items);
+      } catch (err) {
+        console.error("Failed to fetch activity:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActivity();
+  }, [user?.id]);
+
   return (
     <Card className="border-border bg-card">
       <CardHeader>
@@ -49,36 +60,58 @@ export function RecentActivity() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {activities.map((activity) => {
-            const Icon = iconMap[activity.type];
-            const colorClass = colorMap[activity.type];
-
-            return (
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(4)].map((_, i) => (
               <div
-                key={activity.id}
+                key={i}
                 className="flex items-start gap-3 pb-4 border-b border-border last:pb-0 last:border-0"
               >
-                <div
-                  className={`mt-1 inline-flex h-8 w-8 items-center justify-center rounded-lg ${colorClass}`}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-tight text-foreground">
-                    {activity.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {activity.description}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTimeAgo(activity.timestamp)}
-                  </p>
+                <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : activities.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            Пока нет активности. Начни обучение!
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {activities.map((activity) => {
+              const Icon = iconMap[activity.type] || BookOpen;
+              const colorClass =
+                colorMap[activity.type] || "bg-muted text-muted-foreground";
+
+              return (
+                <div
+                  key={activity.id}
+                  className="flex items-start gap-3 pb-4 border-b border-border last:pb-0 last:border-0"
+                >
+                  <div
+                    className={`mt-1 inline-flex h-8 w-8 items-center justify-center rounded-lg ${colorClass}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-tight text-foreground">
+                      {activity.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {activity.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTimeAgo(activity.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

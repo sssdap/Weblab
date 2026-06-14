@@ -40,7 +40,7 @@ function transformFirestoreLesson(data: unknown): Lesson {
   return data as Lesson;
 }
 
-function removeUndefinedFields<T extends Record<string, unknown>>(data: T): T {
+function removeUndefinedFields<T extends object>(data: T): T {
   return Object.fromEntries(
     Object.entries(data).filter(([, value]) => value !== undefined),
   ) as T;
@@ -102,7 +102,10 @@ export async function createLesson(
 
     // Сохраняем документ в Firestore
     const lessonRef = doc(lessonsRef, lessonId);
-    await setDoc(lessonRef, removeUndefinedFields(lesson));
+    await setDoc(
+      lessonRef,
+      removeUndefinedFields(lesson) as unknown as Record<string, unknown>,
+    );
 
     console.log("[LESSON SERVICE] Lesson created successfully:", lessonId);
     return lesson;
@@ -178,10 +181,12 @@ export async function getLessons(
     const querySnapshot = await getDocs(q);
 
     const lessons: Lesson[] = [];
-    querySnapshot.forEach((doc) => {
-      const lesson = transformFirestoreLesson(doc.data());
-      lessons.push(lesson);
-    });
+    querySnapshot.forEach(
+      (doc: { data: () => Record<string, unknown>; id: string }) => {
+        const lesson = transformFirestoreLesson(doc.data());
+        lessons.push(lesson);
+      },
+    );
 
     console.log("[LESSON SERVICE] Fetched lessons count:", lessons.length);
     return lessons;

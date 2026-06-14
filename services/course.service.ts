@@ -144,10 +144,12 @@ export async function getCourses(): Promise<Course[]> {
     const querySnapshot = await getDocs(q);
 
     const courses: Course[] = [];
-    querySnapshot.forEach((doc) => {
-      const course = transformFirestoreCourse(doc.data());
-      courses.push(course);
-    });
+    querySnapshot.forEach(
+      (doc: { data: () => Record<string, unknown>; id: string }) => {
+        const course = transformFirestoreCourse(doc.data());
+        courses.push(course);
+      },
+    );
 
     console.log("[COURSE SERVICE] Fetched courses count:", courses.length);
     return courses;

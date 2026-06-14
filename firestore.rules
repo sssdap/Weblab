@@ -49,21 +49,20 @@ service cloud.firestore {
       // ============================================================
       // ГЛАВЫ (подколлекция курса)
       // /courses/{courseId}/chapters/{chapterId}
-      // Аутентифицированные студенты могут читать любые главы,
-      // неаутентифицированные — только опубликованные.
+      // Аутентифицированные пользователи читают любые главы.
+      // Неаутентифицированные не видят главы вообще (они защищены).
       // ============================================================
       match /chapters/{chapterId} {
-        allow read: if resource.data.published == true || isAuthenticated();
+        allow read: if isAuthenticated();
         allow create, update, delete: if isAdmin();
 
         // ============================================================
         // УРОКИ (подколлекция главы)
         // /courses/{courseId}/chapters/{chapterId}/lessons/{lessonId}
-        // Аутентифицированные студенты могут читать любые уроки,
-        // неаутентифицированные — только опубликованные.
+        // Аутентифицированные пользователи читают любые уроки.
         // ============================================================
         match /lessons/{lessonId} {
-          allow read: if resource.data.published == true || isAuthenticated();
+          allow read: if isAuthenticated();
           allow create, update, delete: if isAdmin();
         }
       }

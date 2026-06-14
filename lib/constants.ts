@@ -16,7 +16,6 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
   { title: "Главная", href: "/dashboard", icon: "LayoutDashboard" },
   { title: "Курс", href: "/course", icon: "BookOpen" },
   { title: "Проекты", href: "/projects", icon: "FolderGit2" },
-  { title: "Тесты", href: "/tests", icon: "FileCheck" },
   { title: "Настройки", href: "/settings", icon: "Settings" },
 ];
 
