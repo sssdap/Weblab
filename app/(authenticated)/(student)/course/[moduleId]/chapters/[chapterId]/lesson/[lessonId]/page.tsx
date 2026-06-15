@@ -355,7 +355,7 @@ export default function LessonViewPage() {
                     )}
 
                   {lesson.content.trim() && (
-                    <section className="prose prose-sm dark:prose-invert max-w-none">
+                    <section className="prose prose-sm dark:prose-invert max-w-none [&_h2]:text-base [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:mt-4 [&_h3]:mb-1.5 [&_p]:text-sm [&_p]:my-2 [&_p]:leading-relaxed [&_pre]:text-xs [&_pre]:p-3 [&_pre]:my-3 [&_code]:text-xs [&_li]:text-sm">
                       <MarkdownPreview content={lesson.content} />
                     </section>
                   )}

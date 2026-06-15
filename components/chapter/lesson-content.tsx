@@ -30,12 +30,12 @@ export function LessonContent({ content }: LessonContentProps) {
         elements.push(
           <pre
             key={`code-${index}`}
-            className="my-4 overflow-x-auto rounded-lg bg-secondary p-4 text-sm"
+            className="my-3 overflow-x-auto rounded-lg bg-secondary/80 p-3 text-xs leading-relaxed"
           >
             <code className={`language-${codeLanguage}`}>
               {codeContent.join("\n")}
             </code>
-          </pre>
+          </pre>,
         );
         return;
       }
@@ -49,9 +49,9 @@ export function LessonContent({ content }: LessonContentProps) {
       // H2 heading
       if (line.startsWith("## ")) {
         elements.push(
-          <h2 key={index} className="mt-8 mb-4 text-xl font-semibold">
+          <h2 key={index} className="mt-5 mb-2 text-base font-semibold">
             {line.slice(3)}
-          </h2>
+          </h2>,
         );
         return;
       }
@@ -59,9 +59,9 @@ export function LessonContent({ content }: LessonContentProps) {
       // H3 heading
       if (line.startsWith("### ")) {
         elements.push(
-          <h3 key={index} className="mt-6 mb-3 text-lg font-semibold">
+          <h3 key={index} className="mt-4 mb-1.5 text-sm font-semibold">
             {line.slice(4)}
-          </h3>
+          </h3>,
         );
         return;
       }
@@ -69,9 +69,12 @@ export function LessonContent({ content }: LessonContentProps) {
       // List item
       if (line.startsWith("- ")) {
         elements.push(
-          <li key={index} className="ml-4 text-muted-foreground">
+          <li
+            key={index}
+            className="ml-4 text-sm leading-relaxed text-muted-foreground"
+          >
             {formatInlineCode(line.slice(2))}
-          </li>
+          </li>,
         );
         return;
       }
@@ -83,9 +86,12 @@ export function LessonContent({ content }: LessonContentProps) {
 
       // Paragraph
       elements.push(
-        <p key={index} className="my-3 leading-relaxed text-muted-foreground">
+        <p
+          key={index}
+          className="my-2 text-sm leading-relaxed text-muted-foreground"
+        >
           {formatInlineCode(line)}
-        </p>
+        </p>,
       );
     });
 
@@ -99,7 +105,7 @@ export function LessonContent({ content }: LessonContentProps) {
         return (
           <code
             key={i}
-            className="rounded bg-secondary px-1.5 py-0.5 text-sm font-mono"
+            className="rounded bg-secondary/70 px-1.5 py-0.5 text-xs font-mono"
           >
             {part.slice(1, -1)}
           </code>
@@ -122,7 +128,7 @@ export function LessonContent({ content }: LessonContentProps) {
 
   return (
     <Card>
-      <CardContent className="prose prose-sm dark:prose-invert max-w-none py-6">
+      <CardContent className="py-4 px-4 sm:py-5 sm:px-5">
         {renderContent(content)}
       </CardContent>
     </Card>

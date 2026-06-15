@@ -9,7 +9,9 @@ export default function StudentLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset className="min-w-0 overflow-x-hidden">
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }

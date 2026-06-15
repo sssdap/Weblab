@@ -1,9 +1,7 @@
 "use client";
 
-import { Bell } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -33,7 +31,9 @@ function getDisplayBreadcrumbs(
   breadcrumbs: BreadcrumbItemData[],
   maxLength: number,
 ): BreadcrumbItemData[] {
-  const withoutRoot = breadcrumbs.filter((item) => item.label !== "Преподаватель");
+  const withoutRoot = breadcrumbs.filter(
+    (item) => item.label !== "Преподаватель",
+  );
 
   return withoutRoot.map((item, index, list) => ({
     ...item,
@@ -107,13 +107,18 @@ export function AppHeader({ breadcrumbs }: AppHeaderProps) {
   const desktopBreadcrumbs = breadcrumbs
     ? getDisplayBreadcrumbs(breadcrumbs, 32)
     : [];
-  const mobileBreadcrumbs = breadcrumbs ? getMobileBreadcrumbs(breadcrumbs) : [];
+  const mobileBreadcrumbs = breadcrumbs
+    ? getMobileBreadcrumbs(breadcrumbs)
+    : [];
 
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden px-3 sm:px-4">
         <SidebarTrigger className="-ml-1 shrink-0" />
-        <Separator orientation="vertical" className="mr-1 hidden h-4 shrink-0 sm:block" />
+        <Separator
+          orientation="vertical"
+          className="mr-1 hidden h-4 shrink-0 sm:block"
+        />
 
         {breadcrumbs && breadcrumbs.length > 0 && (
           <>
@@ -127,12 +132,7 @@ export function AppHeader({ breadcrumbs }: AppHeaderProps) {
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 px-3 sm:gap-2 sm:px-4">
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-9 sm:w-9">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />
-          <span className="sr-only">Уведомления</span>
-        </Button>
+      <div className="flex shrink-0 items-center gap-1 px-2 sm:gap-2 sm:px-4">
         <ThemeToggle />
       </div>
     </header>

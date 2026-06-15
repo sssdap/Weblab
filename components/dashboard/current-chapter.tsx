@@ -89,26 +89,26 @@ export function CurrentChapter() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
+          <div className="min-w-0 flex-1 space-y-2">
             <Badge
               variant="secondary"
-              className="bg-accent/10 text-accent font-medium text-xs"
+              className="bg-accent/10 text-accent font-medium text-xs truncate max-w-full inline-block"
             >
               {nextLesson.courseTitle} — {nextLesson.chapterTitle}
             </Badge>
-            <h3 className="font-semibold text-foreground">
+            <h3 className="font-semibold text-foreground break-words">
               {nextLesson.lessonTitle}
             </h3>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5" />
-                {typeLabel}
+                <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{typeLabel}</span>
               </span>
             </div>
           </div>
           <Button
             asChild
-            className="group shrink-0 bg-accent text-accent-foreground hover:bg-accent/90"
+            className="group w-full sm:w-auto shrink-0 bg-accent text-accent-foreground hover:bg-accent/90"
           >
             <Link href={`/course/${nextLesson.courseId}`}>
               Дальше

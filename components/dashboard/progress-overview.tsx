@@ -43,7 +43,7 @@ export function ProgressOverview() {
   }, [user?.id]);
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-border bg-card w-full overflow-hidden">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">
           Прогресс по модулям

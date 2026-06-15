@@ -36,27 +36,27 @@ export default function DashboardPage() {
       <main className="flex-1 overflow-auto">
         <div className="container max-w-7xl px-4 py-8 md:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-10">
-            <h1 className="text-4xl font-bold tracking-tight">
+          <div className="mb-8 md:mb-10">
+            <h1 className="text-2xl font-bold tracking-tight md:text-4xl">
               Привет, <span className="text-accent">{firstName}</span>!
             </h1>
-            <p className="mt-3 text-lg text-muted-foreground">
+            <p className="mt-2 text-base text-muted-foreground md:mt-3 md:text-lg">
               Продолжай с того места, где остановился — ты на правильном пути.
             </p>
           </div>
 
           {/* Stats Grid */}
-          <div className="mb-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-8 grid grid-cols-2 gap-3 md:mb-10 md:gap-6 lg:grid-cols-4">
             <QuickStats />
           </div>
 
           {/* Content Sections */}
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="space-y-8 lg:col-span-2">
+          <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
+            <div className="space-y-6 lg:col-span-2 lg:space-y-8">
               <ProgressOverview />
               <CurrentChapter />
             </div>
-            <div>
+            <div className="lg:col-span-1">
               <RecentActivity />
             </div>
           </div>

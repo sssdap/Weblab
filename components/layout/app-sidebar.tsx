@@ -12,7 +12,6 @@ import {
   Users,
   ClipboardCheck,
   LogOut,
-  ChevronRight,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,13 +28,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { SITE_NAME, STUDENT_NAV_ITEMS, ADMIN_NAV_ITEMS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { getPendingSubmissionsCount } from "@/services/submission.service";
@@ -143,53 +135,56 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
+          {/* User info */}
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="h-auto py-2">
-                  {user ? (
-                    <>
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback>
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-1 flex-col items-start text-left text-sm">
-                        <span className="font-medium">{user.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {user.email}
-                        </span>
-                      </div>
-                      <ChevronRight className="ml-auto h-4 w-4" />
-                    </>
-                  ) : (
-                    <span className="text-sm">Загрузка...</span>
-                  )}
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="right" align="end" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Настройки
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-destructive"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Выйти
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SidebarMenuButton className="h-auto py-2 cursor-default hover:bg-transparent">
+              {user ? (
+                <>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback>
+                      {user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-1 flex-col items-start text-left text-sm min-w-0">
+                    <span className="font-medium truncate w-full">
+                      {user.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate w-full">
+                      {user.email}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <span className="text-sm">Загрузка...</span>
+              )}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* Settings */}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/settings">
+                <Settings className="h-4 w-4" />
+                <span>Настройки</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* Logout */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={handleLogout}
+              className="text-destructive hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Выйти</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
